@@ -32,6 +32,8 @@ All of the test implementations are located within a single file ([app.py](app.p
 
 All the tests are based on the ones for Starlette, as FastAPI is basically Starlette on steroids plus Pydantic, with many features specifically desgined for API development. All this while still supporting all the other features provided by Starlette.
 
+Tests should use async features like `asyncio.gather` when possible.
+
 ## Resources
 
 * [FastAPI source code on GitHub](https://github.com/tiangolo/fastapi)
