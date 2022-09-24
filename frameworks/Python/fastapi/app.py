@@ -57,14 +57,18 @@ async def single_database_query():
     return JSONResponse({"id": row_id, "randomNumber": number})
 
 
+async def _get_row(row_id):
+    async with connection_pool.acquire() as connection:
+        statement = await connection.prepare(READ_ROW_SQL)
+        return await statement.fetchval(row_id)
+
+
 @app.get("/queries")
 async def multiple_database_queries(queries = None):
     num_queries = get_num_queries(queries)
     row_ids = sample(range(1, 10000), num_queries)
 
-    async with connection_pool.acquire() as connection:
-        statement = await connection.prepare(READ_ROW_SQL)
-        numbers = await asyncio.gather(*[statement.fetchval(row_id) for row_id in row_ids])
+    numbers = await asyncio.gather(*[_get_row(row_id) for row_id in row_ids])
     worlds = [{"id": row_id, "randomNumber": number} for row_id, number in zip(row_ids, numbers)]
 
     return JSONResponse(worlds)
@@ -86,9 +90,8 @@ async def database_updates(queries = None):
     updates = [(row_id, randint(1, 10000)) for row_id in sample(range(1, 10000), num_queries)]
     worlds = [{"id": row_id, "randomNumber": number} for row_id, number in updates]
 
+    await asyncio.gather(*[_get_row(row_id) for row_id, number in updates])
     async with connection_pool.acquire() as connection:
-        statement = await connection.prepare(READ_ROW_SQL)
-        await asyncio.gather(*[statement.fetchval(row_id) for row_id, number in updates])
         await connection.executemany(WRITE_ROW_SQL, updates)
 
     return JSONResponse(worlds)

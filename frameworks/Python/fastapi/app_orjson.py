@@ -61,11 +61,13 @@ async def single_database_query():
 async def multiple_database_queries(queries = None):
     num_queries = get_num_queries(queries)
     row_ids = sample(range(1, 10000), num_queries)
+    worlds = []
 
     async with connection_pool.acquire() as connection:
         statement = await connection.prepare(READ_ROW_SQL)
-        numbers = await asyncio.gather(*[statement.fetchval(row_id) for row_id in row_ids])
-    worlds = [{"id": row_id, "randomNumber": number} for row_id, number in zip(row_ids, numbers)]
+        for row_id in row_ids:
+            number = await statement.fetchval(row_id)
+            worlds.append({"id": row_id, "randomNumber": number})
 
     return ORJSONResponse(worlds)
 
@@ -88,7 +90,8 @@ async def database_updates(queries = None):
 
     async with connection_pool.acquire() as connection:
         statement = await connection.prepare(READ_ROW_SQL)
-        await asyncio.gather(*[statement.fetchval(row_id) for row_id, number in updates])
+        for row_id, number in updates:
+            await statement.fetchval(row_id)
         await connection.executemany(WRITE_ROW_SQL, updates)
 
     return ORJSONResponse(worlds)
