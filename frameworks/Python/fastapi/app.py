@@ -40,6 +40,7 @@ async def setup_database():
         database="hello_world",
         host="tfb-database",
         port=5432,
+        max_size = 250,
     )
 
 
